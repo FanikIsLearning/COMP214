@@ -1,0 +1,70 @@
+WEEK2
+
+Null is not a blank space
+
+db.objects CH6
+
+Why do we need primary key?
+first normal form
+
+What is normal form?
+The normal forms (from least normalized to most normalized) are:
+UNF: Unnormalized form.
+1NF: First normal form.
+2NF: Second normal form.
+3NF: Third normal form.
+EKNF: Elementary key normal form.
+BCNF: Boyce–Codd normal form.
+4NF: Fourth normal form.
+ETNF: Essential tuple normal form.
+
+Object Sequence
+- Oracle is serial database, sequence is importance
+- 
+1. outer generate it; 
+2. design the system 
+3. unique identification e.g. driving license, passport
+
+Sequence
+starting from increment
+[max/min]
+[cycle/crash]
+
+INSERT AND B() 
+(Seq Primary key... NEXTVAL)
+
+When will be primary id duplicated?
+CURRVAL (orderitems is another unique key)
+_________________________________________________________________
+Index
+im -> bl !?
+
+B-Tree Index
+Bitmap Indexes
+
+Verifying an Index
+data structure stored in data dictionary
+_________________________________________________________________
+Synonyms
+
+association
+
+study ch 9,10,11
+_________________________________________________________________
+Views CH13
+Sub-queries
+- STORED SQL-Select...
+
+2 Categories
+- 1. Simple view - 1 table/no queries (DML Data Manipulation Language)
+- 2. Complex view - key-preserved GROUPBY / DISTINCT / ROWNUM / Blocking users/ Limiting users to access
+- 3. In-line view - temporary table - top
+- 4. Materialized view snapshot - stores - keep taking screen shot and instant saving, e.g. comparing between days data
+_________________________________________________________________
+Views
+
+Creating a view
+
+Testing of subqueries
+
+CH6 & 13 + Today stuff
