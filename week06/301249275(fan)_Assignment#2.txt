@@ -1,0 +1,156 @@
+--Q1
+
+DECLARE
+    hoi_budget NUMBER(6,2);
+
+    PROCEDURE hoi_calculate_product_cost (hoi_product_id IN NUMBER, hoi_budget IN OUT NUMBER) IS
+        hoi_product_price NUMBER(6,2);
+        hoi_accumulated_cost NUMBER(6,2) := 0;
+        hoi_counter NUMBER(5) := 0;
+    BEGIN
+        SELECT Price INTO hoi_product_price 
+        FROM BB_Product 
+        WHERE idProduct = hoi_product_id;
+        
+        WHILE hoi_accumulated_cost + hoi_product_price <= hoi_budget LOOP
+            hoi_accumulated_cost := hoi_accumulated_cost + hoi_product_price;
+            hoi_counter := hoi_counter + 1;
+        END LOOP;
+
+        DBMS_OUTPUT.PUT_LINE('Q1 The price of product #ID ' || TO_CHAR(hoi_product_id) || ' is $' || TO_CHAR(hoi_product_price) || '. Therefore, you can only purchase ' || TO_CHAR(hoi_counter) || ' item(s) with $' || TO_CHAR(hoi_budget)||'.');
+    END hoi_calculate_product_cost;
+BEGIN
+    hoi_budget := 100;
+    hoi_calculate_product_cost(4, hoi_budget);
+    
+    hoi_budget := 88;
+    hoi_calculate_product_cost(1, hoi_budget);
+    
+    DBMS_OUTPUT.PUT_LINE('------------------------------------------------------------------------------------------------------------------------------------------------');
+END;
+/
+
+
+--Q2
+DECLARE
+    hoi_basket_id NUMBER(2);
+    hoi_quantity NUMBER(6);
+    hoi_shipping_cost NUMBER(6,2);
+
+    PROCEDURE hoi_calculate_shipping_cost (hoi_basket_id_in IN NUMBER) IS
+    BEGIN
+        SELECT quantity INTO hoi_quantity 
+        FROM BB_BASKET 
+        WHERE idBasket = hoi_basket_id_in;
+
+        IF hoi_quantity <= 3 THEN
+            hoi_shipping_cost := 5.00;
+        ELSIF hoi_quantity BETWEEN 4 AND 6 THEN
+            hoi_shipping_cost := 7.50;
+        ELSIF hoi_quantity BETWEEN 7 AND 10 THEN
+            hoi_shipping_cost := 10.00;
+        ELSE
+            hoi_shipping_cost := 12.00;
+        END IF;
+
+        DBMS_OUTPUT.PUT_LINE('Q2 The basket with #ID ' || hoi_basket_id_in || ' contains ' || hoi_quantity || ' unit(s). The applicable shipping cost is $' || hoi_shipping_cost || '.');
+    END hoi_calculate_shipping_cost;
+
+BEGIN
+    hoi_basket_id := 5;
+    hoi_calculate_shipping_cost(hoi_basket_id);
+    hoi_basket_id := 12;
+    hoi_calculate_shipping_cost(hoi_basket_id);
+    DBMS_OUTPUT.PUT_LINE('------------------------------------------------------------------------------------------------------------------------------------------------');
+END;
+/
+
+
+--Q3
+DECLARE
+    hoi_basket_id bb_Basket.idBasket%TYPE := 12;
+    hoi_subtotal   bb_Basket.SubTotal%TYPE;
+    hoi_shipping   bb_Basket.Shipping%TYPE;
+    hoi_tax        bb_Basket.Tax%TYPE;
+    hoi_total      bb_Basket.Total%TYPE;
+BEGIN
+    SELECT Total, SubTotal, Tax, Shipping
+    INTO hoi_total, hoi_subtotal,hoi_tax, hoi_shipping
+    FROM bb_Basket
+    WHERE idBasket = hoi_basket_id;
+    DBMS_OUTPUT.PUT_LINE('Q3 Basket #ID ' || hoi_basket_id || ' has subtotal $' || hoi_subtotal || ', shipping $' || hoi_shipping || ', tax $' || hoi_tax || ', and total $' || hoi_total);
+    DBMS_OUTPUT.PUT_LINE('------------------------------------------------------------------------------------------------------------------------------------------------');
+END;
+/
+
+
+--Q4
+DECLARE
+  TYPE hoi_basket_rec_type IS RECORD(
+    idBasket bb_Basket.idBasket%TYPE,
+    Total bb_Basket.Total%TYPE,
+    SubTotal bb_Basket.SubTotal%TYPE,
+    Shipping bb_Basket.Shipping%TYPE,
+    Tax bb_Basket.Tax%TYPE
+  );
+
+  hoi_basket_record hoi_basket_rec_type;
+  hoi_idBasket bb_Basket.idBasket%TYPE := 12;
+
+BEGIN
+
+  SELECT idBasket, Total, SubTotal, Shipping, Tax
+  INTO hoi_basket_record
+  FROM bb_Basket
+  WHERE idBasket = hoi_idBasket;
+
+  DBMS_OUTPUT.PUT_LINE('Q4 Basket #ID ' || hoi_basket_record.idBasket || ' has subtotal $' || hoi_basket_record.SubTotal || ', shipping $' || hoi_basket_record.Shipping || ', tax $' || hoi_basket_record.Tax || ', and total $' || hoi_basket_record.Total);
+   DBMS_OUTPUT.PUT_LINE('------------------------------------------------------------------------------------------------------------------------------------------------');
+
+END;
+/
+
+--Q5
+DECLARE
+   type hoi_movie_array is table of NUMBER index by pls_integer;
+   hoi_m_ids hoi_movie_array;
+   hoi_current_m_id NUMBER(10);
+   hoi_m_title  VARCHAR2(40);
+   hoi_count NUMBER(10);
+   hoi_rate VARCHAR2(10);
+BEGIN
+   hoi_m_ids(1) := 4;
+   hoi_m_ids(2) := 25;
+
+   FOR i IN 1..hoi_m_ids.count LOOP
+      hoi_current_m_id := hoi_m_ids(i);
+      SELECT movie_title 
+      INTO hoi_m_title
+      FROM mm_movie
+      WHERE movie_id = hoi_current_m_id;
+      
+      SELECT COUNT(rental_id) 
+      INTO hoi_count
+      FROM mm_rental
+      WHERE movie_id = hoi_current_m_id;
+      
+      IF hoi_count <= 5 THEN
+          hoi_rate := 'Dump';
+      ELSIF hoi_count BETWEEN 6 AND 20 THEN
+          hoi_rate := 'Low';
+      ELSIF hoi_count BETWEEN 21 AND 35 THEN
+          hoi_rate := 'Mid';
+      ELSE
+          hoi_rate := 'High';
+      END IF;
+      
+      DBMS_OUTPUT.PUT_LINE('Q5 Movie #ID: ' || hoi_current_m_id || ', Movie Title: "' || hoi_m_title || '" Rental Count: ' || hoi_count || ', and Rental Rating: ' || hoi_rate );
+      DBMS_OUTPUT.PUT_LINE('');
+   END LOOP;
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+       DBMS_OUTPUT.PUT_LINE('Error! No data existed for Movie #ID ' || hoi_current_m_id);
+   WHEN OTHERS THEN
+       DBMS_OUTPUT.PUT_LINE('An unexpected error has occurred: ' || 'Movie #ID ' || hoi_current_m_id);
+END;
+/

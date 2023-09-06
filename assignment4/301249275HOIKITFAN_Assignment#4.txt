@@ -1,0 +1,168 @@
+//q1
+db.listingsAndReviews.aggregate([
+  {
+    $match: {
+      "host.host_verifications": { $exists: true },
+      "host.host_picture_url": { $exists: true, $ne: "" },
+      $expr: { $gte: [{ $size: "$host.host_verifications" }, 3] }
+    }
+  },
+  {
+    $project: {
+      "listing_url": 1,
+      "name": 1,
+      "address": 1,
+      "host.host_verifications": 1,
+      "host_verifications_count": { $size: "$host.host_verifications" }
+    }
+  }
+])
+
+//q3
+db.restaurants.aggregate([
+  {
+    $match: {
+      cuisine: { $regex: /Pizza/i }
+    }
+  },
+  {$unwind: "$grades"},
+  {
+    $group: {
+      _id: "$restaurant_id",
+      avgScore: { $avg: "$grades.score" },
+      name: { $first: "$name" },
+      address: { $first: "$address" },
+      cuisine: { $first: "$cuisine" },
+    }
+  },
+  {$sort: { avgScore: -1 }},
+  {$limit: 1},
+  {
+    $project: {
+      _id: 1,
+      name: 1,
+      address: 1,
+      cuisine: 1,
+      avgScore: 1,
+    }
+  }
+])
+
+//q4 (Find the mode of "Turkish" & "A"?)
+db.restaurants.aggregate([
+  { $match: { cuisine: "Turkish" } },
+  { $unwind: "$grades" }, // Unwinds the grades array
+  { $match: { "grades.grade": "A" } }, 
+  { $group: {
+    _id: { restaurant_id: "$restaurant_id", name: "$name", cuisine: "$cuisine" }, 
+    count: { $sum: 1 }, // Counts the number of "A" grades
+  }},
+  { $sort: { count: -1 } }, 
+  { $group: {
+    _id: "$count",
+    restaurants: { $push: { restaurant_id: "$_id.restaurant_id", name: "$_id.name", cuisine: "$_id.cuisine", count: "$count" } }
+  }},
+  { $sort: { _id: -1 } },
+  { $limit: 1 }, // Limits to 1 result
+  { $project: { restaurants: 1 } } 
+])
+
+//q5
+db.restaurants.aggregate([
+  { $match: { cuisine: "Chinese" } },
+  { $unwind: "$grades" },
+  { $group: {
+    _id: { name: "$name", restaurant_id: "$restaurant_id" },
+    avgScore: { $avg: "$grades.score" }
+  }},
+  { $sort: { avgScore: -1 } }, 
+  { $limit: 5 },
+  { $project: {
+    _id: 0,
+    name: "$_id.name",
+    restaurant_id: "$_id.restaurant_id",
+    avgScore: 1
+  }}
+])
+
+
+
+/*-------------------------------------------------------------------*/
+/*
+ans1
+[
+  { _id: '10059244' }, { _id: '10030955' },
+  { _id: '10051164' }, { _id: '10141950' },
+  { _id: '10006546' }, { _id: '10133554' },
+  { _id: '1001265' },  { _id: '10166986' },
+  { _id: '10220130' }, { _id: '10228731' },
+  { _id: '10213499' }, { _id: '10083468' },
+  { _id: '10267144' }, { _id: '1019168' },
+  { _id: '10299095' }, { _id: '10240767' },
+  { _id: '10082307' }, { _id: '10116256' },
+  { _id: '1003530' },  { _id: '10092679' }
+]
+ans3
+[
+  {
+    _id: '40393488',
+    avgScore: 38.6,
+    name: 'Bella Napoli',
+    address: {
+      building: '130',
+      coord: [ -73.984758, 40.7457939 ],
+      street: 'Madison Avenue',
+      zipcode: '10016'
+    },
+    cuisine: 'Pizza/Italian'
+  }
+]
+ans4 
+[
+  {
+    _id: 5,
+    restaurants: [
+      {
+        restaurant_id: '40563596',
+        name: 'Sahara Restaurant',
+        cuisine: 'Turkish',
+        count: 5
+      },
+      {
+        restaurant_id: '40559546',
+        name: 'Pasha Turkish Restaurant',
+        cuisine: 'Turkish',
+        count: 5
+      }
+    ]
+  }
+]
+ans5
+[
+  {
+    avgScore: 27.6,
+    name: 'May May Kitchen',
+    restaurant_id: '40358429'
+  },
+  {
+    avgScore: 26.5,
+    name: 'Hop Won Express',
+    restaurant_id: '40584813'
+  },
+  {
+    avgScore: 26,
+    name: 'Nueva Villa China Restaurant',
+    restaurant_id: '40392721'
+  },
+  {
+    avgScore: 23.857142857142858,
+    name: "Joe'S Shanghai Restaurant",
+    restaurant_id: '40548766'
+  },
+  {
+    avgScore: 22.833333333333332,
+    name: 'Wu Liang Ye Restaurant',
+    restaurant_id: '40826684'
+  }
+]
+*/

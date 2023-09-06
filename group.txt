@@ -1,0 +1,32 @@
+Sure, here is an example of a PL/SQL trigger that automatically updates the `total_price` in the `comm_orders` table whenever a new row is inserted into the `comm_order_details` table.
+
+Let's assume that the price field in `comm_order_details` indicates the total price for the quantity of items ordered, not the unit price. So, when a new row is inserted into `comm_order_details`, the order's `total_price` should increase by the `price` of the new order detail.
+
+Here is the trigger:
+
+```sql
+CREATE OR REPLACE TRIGGER update_order_total
+AFTER INSERT ON comm_order_details
+FOR EACH ROW
+DECLARE
+  v_order_price comm_orders.total_price%TYPE;
+BEGIN
+  SELECT total_price INTO v_order_price FROM comm_orders
+  WHERE order_id = :NEW.order_id;
+
+  v_order_price := v_order_price + :NEW.price;
+
+  UPDATE comm_orders SET total_price = v_order_price
+  WHERE order_id = :NEW.order_id;
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    DBMS_OUTPUT.PUT_LINE('Error: Order not found.');
+END;
+/
+```
+
+This trigger will fire after a new row is inserted into `comm_order_details`. It fetches the current total price of the order from `comm_orders`, adds the new order detail's price to it, and updates the order's total price in `comm_orders`. 
+
+If the order is not found in `comm_orders`, it outputs an error message. 
+
+Please note that this trigger assumes that the `total_price` in `comm_orders` is the sum of the `price` of all its associated order details in `comm_order_details`. If the `total_price` is calculated differently, the trigger should be adjusted accordingly. Also, this trigger only handles insertions into `comm_order_details`, not updates or deletions. Additional triggers would be needed for those operations if they can occur in your application.

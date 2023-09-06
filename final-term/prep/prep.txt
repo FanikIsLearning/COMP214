@@ -1,0 +1,154 @@
+1
+
+CREATE OR REPLACE FUNCTION sold_amount (p_product_id int, p_year int)
+RETURNS numeric
+as $$
+BEGIN
+RETURN (SELECT COALESCE(sum(ol.quantity), 0) as sold_amount
+FROM orders o
+JOIN orderlines ol
+ON ol.order_id = o.order_id
+WHERE o.order_date BETWEEN date_trunc('year', date 'p_year-01-01')::date AND date_trunc('year', date 'p_year-01-01'::date + interval '1 year - 1 day')::date
+AND ol.product_id = p_product_id);
+END;
+$$ language plpgsql;
+
+
+SELECT sold_amount(1, 2020);
+
+2
+
+There is no need for a trigger, simply update the <code>idproduct</code> field in the <code>bb_product</code> table:
+<code>UPDATE bb_product SET idproduct = 22 WHERE idproduct = 7;
+</code>
+The cascade update for all the <code>bb_basketitem</code> and <code>bb_productoption</code> table rows will happen automatically.
+
+If, for some reason, you can't change the <code>bb_product</code> table, you can create a trigger like this:
+<code>CREATE OR REPLACE TRIGGER trg_update_product
+AFTER UPDATE OF idproduct ON bb_product
+FOR EACH ROW
+BEGIN
+ UPDATE bb_basketitem SET idproduct = :new.idproduct WHERE idproduct = :old.idproduct;
+ UPDATE bb_productoption SET idproduct = :new.idproduct WHERE idproduct = :old.idproduct;
+END;
+/
+</code>
+However, I don't recommend this, because it will update all the <code>bb_productoption</code> rows, even if they don't belong to the updated product.
+
+Or, if you must, you can create a stored procedure that will handle this for you:
+<code>CREATE OR REPLACE PROCEDURE update_product_and_basketitem (
+ p_idproduct_from IN NUMBER,
+ p_idproduct_to  IN NUMBER
+)
+AS
+ l_count BINARY_INTEGER;
+BEGIN
+ UPDATE bb_product SET idproduct = p_idproduct_to WHERE idproduct = p_idproduct_from;
+
+ SELECT COUNT(*) INTO l_count FROM bb_basketitem WHERE idproduct = p_idproduct_from;
+ IF l_count > 0 THEN
+   UPDATE bb_basketitem SET idproduct = p_idproduct_to WHERE idproduct = p_idproduct_from;
+ END IF;
+END;
+/
+</code>
+Again, I don't recommend this, because it will update all the <code>bb_productoption</code> rows, even if they don't belong to the updated product.
+
+Or, you can use a single statement like this:
+<code>UPDATE bb_product bp
+  SET bp.idproduct = 22
+WHERE bp.idproduct = 7
+RETURNING bp.idproduct, bp.name, bp.price
+BULK COLLECT INTO l_product, l_product_name, l_product_price;
+
+UPDATE bb_basketitem bi
+  SET bi.idproduct = 22
+WHERE bi.idproduct = 7;
+
+UPDATE bb_productoption po
+  SET po.idproduct = 22
+WHERE po.idproduct = 7;
+</code>
+This will update all the <code>bb_productoption</code> rows, even if they don't belong to the updated product.
+
+Step by step explanation:
+
+Q1:
+
+This code defines a function that takes in two parameters, a product ID and a year, and returns the total sold amount for that product during that year.
+
+The function first calculates the date range for the given year, then sums the quantity of all order lines for that product ID that fall within that date range. If there are no order lines for the given product ID within the given date range, the function returns 0.
+
+The code then calls the function, passing in the product ID 1 and the year 2020, and prints the result. This function would be useful for a business in order to track how much of a specific product is being sold in a given year, and to compare sales year over year.
+
+Q2:
+
+The code above updates the <code>bb_product</code> table, setting the <code>idproduct</code> field to the value <code>22</code> for all rows where the <code>idproduct</code> field is equal to <code>7</code>. It also updates the <code>bb_basketitem</code> and <code>bb_productoption</code> tables, setting the <code>idproduct</code> field to the value <code>22</code> for all rows where the <code>idproduct</code> field is equal to <code>7</code>.
+
+The code above will update all the <code>bb_productoption</code> rows, even if they don't belong to the updated product.
+
+The code above is equivalent to the following code:
+
+UPDATE bb_product SET idproduct = 22 WHERE idproduct = 7;
+
+UPDATE bb_basketitem SET idproduct = 22 WHERE idproduct = 7;
+
+UPDATE bb_productoption SET idproduct = 22 WHERE idproduct = 7;
+
+{
+  "address": {
+     "building": "1007",
+     "coord": [ -73.856077, 40.848447 ],
+     "street": "Morris Park Ave",
+     "zipcode": "10462"
+  },
+  "borough": "Bronx",
+  "cuisine": "Bakery",
+  "grades": [
+     { "date": { "$date": 1393804800000 }, "grade": "A", "score": 2 },
+     { "date": { "$date": 1378857600000 }, "grade": "A", "score": 6 },
+     { "date": { "$date": 1358985600000 }, "grade": "A", "score": 10 },
+     { "date": { "$date": 1322006400000 }, "grade": "A", "score": 9 },
+     { "date": { "$date": 1299715200000 }, "grade": "B", "score": 14 }
+  ],
+  "name": "Morris Park Bake Shop",
+  "restaurant_id": "30075445"
+}
+
+--******************
+a. List id and address of borough: Manhattan, cuisine: American and name : westside restaurant".
+data structure provided, can you give me the mongodb code for me to run the terminal?
+
+db.restaurants.find(
+    {},
+    {
+        "borough": "Manhattan",
+        "cuisine": "American",
+        "name": "westside restaurant"
+    },
+    {
+        "_id": 0,
+        "restaurant_id": 1,
+        "address": 1
+    }
+)
+
+--*********************
+
+b. List name only, and sort by zip restaurants in 7 Avenue and having Irish cousin.
+
+
+db.restaurants.find(
+    {},
+    {
+        "name": 1,
+        "address": 
+        {
+            "street": "7 Avenue"
+        }, 
+        "cuisine": "Irish"
+    }, 
+    {
+        "name": 1
+    }
+).sort({"zip code": 1})

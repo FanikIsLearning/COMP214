@@ -1,0 +1,48 @@
+assignment about sub queries 10%
+
+Q1
+├── Q2
+│ └──
+correlated queries
+
+SELECT, FROM, HAVING
+
+1st: > < = !
+2nd: 1 col, multi row
+
+> ALL
+> <ANY MAX
+
+> ANY
+> <ALL MIN
+> 3rd: multi cos multi rows
+
+uncorrelated queries, outer of the tables
+merging today
+
+IN/EXIST; ALL; ANY
+
+SELECT AVG(retail) FROM books;
+SELECT title, retail FROM books WHERE retail < (SELECT ABG(retail) FROM books);
+SELECT a.title, b.category, a.cost
+FROM books a, ( SELECT category, AVG(cost) averagecosty FROM books GROUP BY CATEGORY) B
+WHERE a.category = b.category AND a.cost < b.averagecost;
+
+│ │ ├──
+| | | ├──
+│ │ ├──
+│ │ ├──
+│ │ ├──
+│ │ ├──
+│ │ └── ...
+│ ├──
+│ │ ├──
+│ │ ├──
+│ │ ├──
+│ │ ├──
+│ │ └──
+│ ├──
+│ │ ├── ...
+│ └──
+│ └── ...
+└── ...

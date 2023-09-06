@@ -1,0 +1,63 @@
+/*q1 List the names of all criminals who have committed less or equal than average number of crimes and aren’t listed as violent offenders.*/
+SELECT c.first, c.last, c.v_status, c.criminal_id
+FROM criminals c
+WHERE (SELECT COUNT(*) FROM crimes WHERE criminal_id = c.criminal_id) <= 
+    (SELECT AVG(crime_count) FROM (SELECT criminal_id, COUNT(*) as crime_count FROM crimes GROUP BY criminal_id))
+AND c.v_status != 'Y'
+ORDER BY c.criminal_id ASC;
+
+/*q2 List appeal information for each appeal that has a min number of days between the filing and hearing dates.*/
+SELECT *
+FROM appeals
+WHERE (hearing_date - filing_date) = 
+(SELECT MIN(hearing_date - filing_date) FROM appeals WHERE filing_date IS NOT NULL AND hearing_date IS NOT NULL);
+
+/*q3 Create a block with a single cursor that can perform a different query of pledge payment data based on user input. 
+Input provided to the block includes a donor ID and an indicator value of D or S. 
+The D represents details and indicates that each payment on all pledges the donor has made should be displayed. 
+The S indicates displaying summary data of the pledge payment total for each pledge the donor has made. Both D and S has to be in one execution of code.*/
+DECLARE
+  v_idDonor    DD_Pledge.idDonor%TYPE := &idDonor;
+  v_indicator  CHAR := '&indicator';
+  
+  TYPE ref_cursor_type IS REF CURSOR;
+  c_payments ref_cursor_type;
+  v_idPledge   DD_Pledge.idPledge%TYPE;
+  v_idPay      DD_Payment.idPay%TYPE;
+  v_Payamt     DD_Payment.Payamt%TYPE;
+  v_Paydate    DD_Payment.Paydate%TYPE;
+  v_total_amount DD_Payment.Payamt%TYPE;
+
+BEGIN
+  IF v_indicator = 'D' THEN
+    OPEN c_payments FOR 
+      SELECT p.idPledge, py.idPay, py.Payamt, py.Paydate
+      FROM DD_Pledge p 
+      JOIN DD_Payment py ON p.idPledge = py.idPledge
+      WHERE p.idDonor = v_idDonor;
+      
+    LOOP
+      FETCH c_payments INTO v_idPledge, v_idPay, v_Payamt, v_Paydate;
+      EXIT WHEN c_payments%NOTFOUND;
+      DBMS_OUTPUT.PUT_LINE('Pledge ID: ' || v_idPledge || ', Payment ID: ' || v_idPay || ', Payment Amount: $' || v_Payamt || ', Payment Date: ' || v_Paydate);
+    END LOOP;
+  ELSIF v_indicator = 'S' THEN
+    OPEN c_payments FOR
+      SELECT p.idPledge, SUM(py.Payamt) AS total_amount
+      FROM DD_Pledge p
+      JOIN DD_Payment py ON p.idPledge = py.idPledge
+      WHERE p.idDonor = v_idDonor
+      GROUP BY p.idPledge;
+
+    LOOP
+      FETCH c_payments INTO v_idPledge, v_total_amount;
+      EXIT WHEN c_payments%NOTFOUND;
+      DBMS_OUTPUT.PUT_LINE('Pledge ID: ' || v_idPledge || ', Total Payments: $' || v_total_amount);
+    END LOOP;
+  END IF;
+
+  CLOSE c_payments;
+END;
+/
+
+

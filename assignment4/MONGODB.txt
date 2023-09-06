@@ -1,0 +1,10 @@
+https://www.w3resource.com/mongodb-exercises/
+
+--connection
+mongosh "mongodb+srv://dafincidev:ffq5gks4ci4z6F5j@cluster0.boimuve.mongodb.net/COMP214" --username dafincidev
+
+--insert
+mongoimport --uri mongodb+srv://dafincidev:ffq5gks4ci4z6F5j@cluster0.boimuve.mongodb.net/COMP214 --collection listingsAndReviews --type json --file /Users/fanik/development/COMP214/assignment4/listingsAndReviews.json
+
+mongoimport --uri mongodb+srv://dafincidev:ffq5gks4ci4z6F5j@cluster0.boimuve.mongodb.net/COMP214 --collection restaurants --type json --file /Users/fanik/development/COMP214/assignment4/restaurants.json
+

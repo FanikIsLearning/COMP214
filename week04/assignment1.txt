@@ -1,0 +1,79 @@
+/*sql script format (.txt for Turnitin)*/
+/*The city’s Crime Analysis unit has submitted the following data requests. Provide the SQL statements using subqueries to satisfy the requests.*/
+
+/*1. List of criminals with less than average violations and having aliases.*/
+/*S.VIOLATIONS <  3/11 = 1000, 1001, 1002, 1004, 1005, 1006, 1007 and 1010
+These sentence_id have criminal_id (1020, 1021, 1022, 1025, 1026, 1027, 1028 and 1030
+ONLY 1020 and 1022 have alias
+*/
+SELECT CLS.CRIMINAL_ID, CLS.FIRST, CLS.LAST
+FROM CRIMINALS CLS
+JOIN ALIASES A ON CLS.CRIMINAL_ID = A.CRIMINAL_ID
+JOIN SENTENCES S ON CLS.CRIMINAL_ID = S.CRIMINAL_ID
+WHERE S.VIOLATIONS < (SELECT AVG(VIOLATIONS) FROM SENTENCES)
+GROUP BY CLS.CRIMINAL_ID, CLS.FIRST, CLS.LAST
+ORDER BY CLS.CRIMINAL_ID ASC;
+
+
+/*2.List criminal(s) that Crime Charges court fee is greater than min per crime.*/
+/*min of court_fee is 50, only crime_id 10085 and 10086 are > 50. Then check CRIME table to find criminals who match 10085 and 10086*/
+SELECT CLS.CRIMINAL_ID, CLS.FIRST, CLS.LAST
+FROM CRIMINALS CLS
+JOIN CRIMES C ON CLS.CRIMINAL_ID = C.CRIMINAL_ID
+JOIN CRIME_CHARGES CC ON C.CRIME_ID = CC.CRIME_ID
+WHERE CC.COURT_FEE > (SELECT MIN(COURT_FEE) FROM CRIME_CHARGES)
+GROUP BY CLS.CRIMINAL_ID, CLS.FIRST, CLS.LAST
+ORDER BY CLS.CRIMINAL_ID ASC;
+
+
+/*3. List Officers that have less of equal avg number of crimes assigned.*/
+/*officer_id 111115 has 9 times, which is more than 3.25(avg). Then find those officers <= 3.25*/
+SELECT O.OFFICER_ID, O.FIRST, O.LAST
+FROM OFFICERS O
+WHERE (SELECT COUNT(*) FROM CRIME_OFFICERS CO WHERE O.OFFICER_ID = CO.OFFICER_ID) <= 
+      (SELECT AVG(CRIME_COUNT) FROM (SELECT COUNT(*) AS CRIME_COUNT FROM CRIME_OFFICERS GROUP BY OFFICER_ID));
+ 
+/*4. List criminals that have Max amount paid in crime charges per crime.*/
+/*max of amound_paid is 150, which crime_id is 10087, then 10087 is criminal_id 1022*/
+SELECT CLS.CRIMINAL_ID, CLS.FIRST, CLS.LAST
+FROM CRIMINALS CLS
+JOIN CRIMES C ON CLS.CRIMINAL_ID = C.CRIMINAL_ID
+JOIN CRIME_CHARGES CC ON C.CRIME_ID = CC.CRIME_ID
+WHERE CC.AMOUNT_PAID = (SELECT MAX(AMOUNT_PAID) FROM CRIME_CHARGES)
+GROUP BY CLS.CRIMINAL_ID, CLS.FIRST, CLS.LAST;
+
+
+/* 5. List criminals that have less or equal than average sentences issued.*/
+/*avg(11/10) = 1.1, criminals_id in sentence table = (1020,1021,1022,1024,1025,1026,1027,1028,1029) */
+SELECT CLS.CRIMINAL_ID, CLS.FIRST, CLS.LAST
+FROM CRIMINALS CLS
+WHERE CLS.CRIMINAL_ID IN (SELECT CRIMINAL_ID FROM SENTENCES)
+AND (SELECT COUNT(*) FROM SENTENCES SEN WHERE CLS.CRIMINAL_ID = SEN.CRIMINAL_ID) <= 
+    (SELECT AVG(SENTENCE_COUNT) FROM (SELECT COUNT(*) AS SENTENCE_COUNT FROM SENTENCES GROUP BY CRIMINAL_ID));
+
+
+/*6. List probation officers that have less than average criminals with sentences assigned with them.*/
+/* (1+1+1+8)/4 = 2.75, then < 2.75 of prob_id are (null), 102 and 108. We can get the result by filter (null).*/
+SELECT PROF.PROB_ID, PROF.FIRST, PROF.LAST
+FROM PROB_OFFICERS PROF
+LEFT JOIN SENTENCES S ON PROF.PROB_ID = S.PROB_ID
+WHERE PROF.PROB_ID IN (SELECT PROB_ID FROM SENTENCES WHERE CRIMINAL_ID IS NOT NULL)
+AND (SELECT COUNT(*) FROM SENTENCES S WHERE PROF.PROB_ID = S.PROB_ID) < 
+    (SELECT AVG(CRIMINAL_COUNT) FROM (SELECT PROB_ID, COUNT(*) AS CRIMINAL_COUNT FROM SENTENCES GROUP BY PROB_ID));
+
+
+--Correction from Tim
+--4.) List criminals that have Max amount paid in crime charges per crime. 
+Select *
+from criminals
+where criminal_id = (   select criminal_id
+                        from crimes c
+                        join (  select crime_id, sum(amount_paid)
+                                from crime_charges
+                                group by crime_id
+                                having sum(amount_paid) = ( select max(sum(amount_paid))
+                                                            from crime_charges
+                                                            group by crime_id)) d on c.crime_id = d.crime_id);
+
+
+

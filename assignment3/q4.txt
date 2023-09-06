@@ -1,0 +1,53 @@
+--Q5
+-- Create a package to hold the tax rates cursor and the function to fetch tax rates.
+CREATE OR REPLACE PACKAGE TAX_PKG
+IS
+    TYPE tax_cursor IS REF CURSOR;
+
+    FUNCTION FETCH_TAX_RATE(P_STATE IN BB_TAX.STATE%TYPE) RETURN BB_TAX.TAXRATE%TYPE;
+END TAX_PKG;
+/
+
+CREATE OR REPLACE PACKAGE BODY TAX_PKG
+IS
+    -- Function to fetch tax rate for a given state.
+    FUNCTION FETCH_TAX_RATE(P_STATE IN BB_TAX.STATE%TYPE) RETURN BB_TAX.TAXRATE%TYPE
+    IS
+        v_taxRate BB_TAX.TAXRATE%TYPE;
+        v_taxCur tax_cursor;
+        v_taxRec BB_TAX%ROWTYPE;
+    BEGIN
+        OPEN v_taxCur FOR
+        SELECT *
+        FROM BB_TAX
+        WHERE STATE = P_STATE;
+
+        FETCH v_taxCur INTO v_taxRec;
+        IF v_taxCur%NOTFOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No tax rate found for state: ' || P_STATE);
+            CLOSE v_taxCur;
+            RETURN NULL;
+        ELSE
+            v_taxRate := v_taxRec.TAXRATE;
+            CLOSE v_taxCur;
+            RETURN v_taxRate;
+        END IF;
+    END FETCH_TAX_RATE;
+END TAX_PKG;
+/
+
+-- Testing the function using an anonymous block.
+DECLARE
+    v_taxRate BB_TAX.TAXRATE%TYPE;
+BEGIN
+    v_taxRate := TAX_PKG.FETCH_TAX_RATE('NC');
+    DBMS_OUTPUT.PUT_LINE('The tax rate for NC is: ' || TRIM(TO_CHAR(v_taxRate, 'L0D00')));
+END;
+/
+
+
+
+
+
+
+

@@ -1,0 +1,366 @@
+-- 4-1
+VARIABLE g_basket NUMBER
+
+BEGIN
+
+:g_basket := 6;
+
+END;
+
+/
+
+DECLARE
+CURSOR cur_basket IS
+SELECT bi.idBasket, bi.quantity, p.stock
+FROM bb_basketitem bi INNER JOIN bb_product p
+USING (idProduct)
+WHERE bi.idBasket = :g_basket;
+TYPE type_basket IS RECORD (
+basket bb_basketitem.idBasket%TYPE,
+qty bb_basketitem.quantity%TYPE,
+stock bb_product.stock%TYPE);
+rec_basket type_basket;
+lv_flag_txt CHAR(1) := 'Y';
+BEGIN
+OPEN cur_basket;
+LOOP
+FETCH cur_basket INTO rec_basket;
+EXIT WHEN cur_basket%NOTFOUND;
+IF rec_basket.stock < rec_basket.qty THEN lv_flag_txt := 'N'; END IF;
+END LOOP;
+CLOSE cur_basket;
+IF lv_flag_txt = 'Y' THEN DBMS_OUTPUT.PUT_LINE('All items in stock!'); END IF;
+IF lv_flag_txt = 'N' THEN DBMS_OUTPUT.PUT_LINE('All items NOT in stock!'); END IF;
+END;
+
+/
+
+/*----------------------------------------------------------------*/
+select * from bb_basketitem;
+DECLARE
+  lv_basket_id NUMBER := 99; -- Replace with the actual basket ID
+  lv_flag_txt VARCHAR2(100);
+  
+  CURSOR c_basket_items IS
+    SELECT bi.Quantity, p.Stock
+    FROM bb_basketItem bi
+    JOIN bb_Product p ON p.idProduct = bi.idProduct
+    WHERE bi.idBasket = lv_basket_id;
+  
+  r_basket_item c_basket_items%ROWTYPE;
+BEGIN
+  lv_flag_txt := 'All items in stock!'; -- Assume all items are initially in stock
+  
+  -- Open the cursor
+  OPEN c_basket_items;
+  
+  -- Fetch the items one by one and check the stock
+  LOOP
+    FETCH c_basket_items INTO r_basket_item;
+    EXIT WHEN c_basket_items%NOTFOUND;
+    
+    -- Check if the item quantity exceeds the stock amount
+    IF r_basket_item.Quantity > r_basket_item.Stock THEN
+      lv_flag_txt := 'All items NOT in stock!';
+      EXIT;
+    END IF;
+  END LOOP;
+  
+  -- Close the cursor
+  CLOSE c_basket_items;
+  
+  -- Display the stock status message
+  DBMS_OUTPUT.PUT_LINE(lv_flag_txt);
+END;
+/
+
+
+DECLARE
+   CURSOR cur_basket IS
+     SELECT bi.idBasket, bi.quantity, p.stock
+       FROM bb_basketitem bi 
+       INNER JOIN bb_product p ON bi.idProduct = p.idProduct
+       WHERE bi.idBasket = 6;
+   lv_flag_txt CHAR(1) := 'Y';
+BEGIN
+   FOR rec_basket IN cur_basket
+   LOOP 
+      IF rec_basket.stock < rec_basket.quantity THEN 
+         lv_flag_txt := 'N'; 
+         EXIT; 
+      END IF;
+   END LOOP;
+
+   IF lv_flag_txt = 'Y' THEN 
+      DBMS_OUTPUT.PUT_LINE('All items in stock!'); 
+   ELSE 
+      DBMS_OUTPUT.PUT_LINE('All items NOT in stock!'); 
+   END IF;   
+END;
+
+
+-- 4-2
+DECLARE
+    CURSOR c1 IS
+    SELECT bb_shopper.idshopper, SUM(bb_basketitem.price * bb_basketitem.quantity) total_spent
+    FROM bb_shopper JOIN bb_basket ON bb_shopper.idshopper = bb_basket.idshopper
+                     JOIN bb_basketitem ON bb_basket.idbasket = bb_basketitem.idbasket
+    GROUP BY bb_shopper.idshopper;
+
+    promo_value VARCHAR2(20);
+BEGIN
+    FOR rec IN c1
+    LOOP
+        IF rec.total_spent > 100 THEN
+            promo_value := 'Free Shipping Coupon';
+        ELSIF rec.total_spent > 50 THEN
+            promo_value := '$5 Coupon';
+        ELSE 
+            promo_value := NULL; 
+        END IF;
+        
+        UPDATE bb_shopper
+        SET promo = promo_value
+        WHERE idshopper = rec.idshopper;
+    END LOOP;
+    COMMIT;
+END;
+/
+
+
+SELECT idshopper, promo FROM bb_shopper;
+-- 4-3
+
+BEGIN
+  UPDATE bb_shopper
+  SET promo = NULL
+  WHERE promo IS NOT NULL;
+  
+  DBMS_OUTPUT.PUT_LINE('Number of rows updated: ' || SQL%ROWCOUNT);
+END;
+/
+/*----------------------------------------------------------------*/
+
+DECLARE 
+  CURSOR cur_shopper IS
+    SELECT a.idShopper, a.promo,  b.totalAmount
+    FROM bb_shopper a, 
+      (SELECT b.idShopper, SUM(bi.quantity*bi.price) totalAmount
+       FROM bb_basketitem bi, bb_basket b
+       WHERE bi.idBasket = b.idBasket
+       GROUP BY idShopper
+      ) b
+    WHERE a.idShopper = b.idShopper
+    FOR UPDATE OF a.promo NOWAIT;
+  lv_promo_txt CHAR(1);
+BEGIN
+  FOR rec_shopper IN cur_shopper LOOP
+    lv_promo_txt := 'X';
+    IF rec_shopper.totalAmount > 100 THEN 
+      lv_promo_txt := 'A';
+    ELSIF rec_shopper.totalAmount BETWEEN 50 AND 99 THEN 
+      lv_promo_txt := 'B';
+    END IF;
+    IF lv_promo_txt <> 'X' THEN
+      UPDATE bb_shopper
+      SET promo = lv_promo_txt
+      WHERE CURRENT OF cur_shopper;
+    END IF;
+  END LOOP;
+  COMMIT;
+END;
+
+
+SELECT s.idShop, s.promo, SUM(bi.quantity*bi.price)
+
+FROM bb_shopper s, bb_basket b, bb_basketitem bi
+
+WHERE s.idShop = b.idShop
+
+AND b.idBasket = bi.idBasket
+
+GROUP BY s.idShop, s.promo;
+
+-- 4-5
+DECLARE
+
+rec_shopper bb_shopper%ROWTYPE;
+
+lv_shopper_num Number;
+
+lv_shopper_ex Exception;
+
+BEGIN
+
+lv_shopper_num Number :=12;
+
+SELECT count(*)
+
+INTO rec_shopper
+
+FROM bb_shopper
+
+WHERE idShopper = lv_shopper_num;
+
+if(count=0) then
+
+raise ex_invalid_id;
+
+EXCEPTION
+
+WHEN ex_invalid_id THEN
+
+dbms_output.put_line('Invalid Shopper ID');
+
+WHEN others THEN
+
+dbms_output.put_line('Other possible error!');
+
+END;
+
+-- 4-6
+
+SET serveroutput ON;
+
+DECLARE
+
+ex_basket EXCEPTION;
+
+pragma EXCEPTION_INIT(ex_basket, -02290);
+
+BEGIN
+
+EXECUTE IMMEDIATE 'ALTER TABLE bb_basketitem ADD CONSTRAINT bitems_qty_ck CHECK (quantity < 20);';
+
+INSERT INTO testab VALUES
+
+(88
+
+);
+
+EXCEPTION
+
+WHEN ex_basket THEN
+
+dbms_output.put_line('Check Quantity');
+
+END;
+
+
+-- 4-7
+DECLARE
+  lv_old_num NUMBER := 30;
+  lv_new_num NUMBER := 4;
+  v_cnt NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_cnt FROM bb_basketitem WHERE idbasket = lv_old_num;
+
+  IF v_cnt = 0 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Invalid original basket ID');
+  END IF;
+
+  UPDATE bb_basketitem
+  SET idBasket = lv_new_num
+  WHERE idBasket = lv_old_num;
+  
+  COMMIT;
+EXCEPTION
+  WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE(SQLERRM);
+END;
+
+
+
+SELECT *
+FROM BB_BASKETITEM
+WHERE idBasket = 30;
+
+-- 4-8
+DECLARE
+    v_cur_salary NUMBER(8,2);
+    v_raise      NUMBER(8,2);
+    v_new_salary NUMBER(8,2);
+    v_total_raise NUMBER(8,2) := 0;
+
+BEGIN
+    FOR v_emp IN (SELECT employee_id, position, salary 
+                  FROM EMPLOYEE
+                  WHERE position != 'President') 
+    LOOP
+        v_cur_salary := v_emp.salary * 12;  -- Calculate current annual salary
+        v_raise := LEAST(v_cur_salary * 0.06, 2000); -- Calculate raise, cap at $2000
+        v_new_salary := v_cur_salary + v_raise; -- Calculate new salary
+
+        -- Update the salary in the database
+        UPDATE EMPLOYEE
+        SET salary = v_new_salary / 12
+        WHERE employee_id = v_emp.employee_id;
+
+        -- Print the salary details
+        DBMS_OUTPUT.PUT_LINE('Employee ID: ' || v_emp.employee_id);
+        DBMS_OUTPUT.PUT_LINE('Current annual salary: ' || TO_CHAR(v_cur_salary, 'L9G999D99'));
+        DBMS_OUTPUT.PUT_LINE('Raise: ' || TO_CHAR(v_raise, 'L9G999D99'));
+        DBMS_OUTPUT.PUT_LINE('Proposed new annual salary: ' || TO_CHAR(v_new_salary, 'L9G999D99'));
+        DBMS_OUTPUT.PUT_LINE('------------------------------------------');
+
+        -- Accumulate total raise
+        v_total_raise := v_total_raise + v_raise;
+
+    END LOOP;
+
+    DBMS_OUTPUT.PUT_LINE('Total cost of all employees’ salary increases for Brewbean’s: ' || TO_CHAR(v_total_raise, 'L9G999D99'));
+
+    COMMIT; -- Commit the transaction
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK; -- Rollback the transaction in case of any errors
+        RAISE; -- Re-raise the exception
+END;
+/
+
+-- 4-9
+DECLARE
+  -- Define variables
+  v_donor_id NUMBER := 123; -- Replace with the specific donor ID
+  v_pledge_id NUMBER;
+  v_pledge_amount NUMBER;
+  v_num_payments NUMBER;
+  v_payment_date DATE;
+  v_payment_amount NUMBER;
+  v_first_payment VARCHAR2(15);
+BEGIN
+  -- Retrieve and display pledge and payment information
+FOR c IN (SELECT p.idPledge, p.PledgeAmount, p.NumPayments, pm.PaymentDate, pm.PaymentAmount,
+                 ROW_NUMBER() OVER (PARTITION BY p.idPledge ORDER BY pm.PaymentDate) AS payment_rank
+          FROM SCOTT.bb_Pledge p
+          JOIN SCOTT.bb_Payment pm ON p.idPledge = pm.idPledge
+          WHERE p.idDonor = v_donor_id
+          ORDER BY p.idPledge, pm.PaymentDate)
+LOOP
+    -- Assign values to variables
+    v_pledge_id := c.idPledge;
+    v_pledge_amount := c.PledgeAmount;
+    v_num_payments := c.NumPayments;
+    v_payment_date := c.PaymentDate;
+    v_payment_amount := c.PaymentAmount;
+
+    -- Determine if it's the first payment for the pledge
+    IF c.payment_rank = 1 THEN
+      v_first_payment := 'first payment';
+    ELSE
+      v_first_payment := NULL;
+    END IF;
+
+    -- Display pledge and payment information
+    DBMS_OUTPUT.PUT_LINE('Pledge ID: ' || v_pledge_id);
+    DBMS_OUTPUT.PUT_LINE('Pledge Amount: ' || v_pledge_amount);
+    DBMS_OUTPUT.PUT_LINE('Number of Monthly Payments: ' || v_num_payments);
+    DBMS_OUTPUT.PUT_LINE('Payment Date: ' || v_payment_date);
+    DBMS_OUTPUT.PUT_LINE('Payment Amount: ' || v_payment_amount);
+    DBMS_OUTPUT.PUT_LINE(v_first_payment);
+    DBMS_OUTPUT.PUT_LINE('-------------------------');
+  END LOOP;
+END;
+/
+
+

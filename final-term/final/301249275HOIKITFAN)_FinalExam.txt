@@ -1,0 +1,167 @@
+--q1.1
+
+CREATE OR REPLACE FUNCTION DAY_ORD_SF(p_idBasket NUMBER)
+RETURN VARCHAR2
+IS
+    v_weekday_name VARCHAR2(50);
+BEGIN
+    SELECT TO_CHAR(dtCreated, 'DAY')
+    INTO v_weekday_name
+    FROM bb_Basket
+    WHERE idBasket = p_idBasket;
+
+    RETURN v_weekday_name;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN 'Basket Not Found';
+    WHEN OTHERS THEN
+        RAISE;
+END DAY_ORD_SF;
+/
+
+--testing
+DECLARE
+    v_weekday VARCHAR2(50);
+BEGIN
+    v_weekday := DAY_ORD_SF(3);
+    DBMS_OUTPUT.PUT_LINE('The basket was created on: ' || v_weekday);
+EXCEPTION
+    WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('An error occurred: ' || SQLERRM);
+END;
+/
+
+--q1.2
+SELECT 
+    idBasket,
+    TO_CHAR(dtCreated, 'DAY') AS Weekday
+FROM 
+    bb_Basket;
+
+--q1.3
+WITH Weekdays AS (
+    SELECT 'MONDAY' AS Weekday FROM DUAL
+    UNION ALL
+    SELECT 'TUESDAY' FROM DUAL
+    UNION ALL
+    SELECT 'WEDNESDAY' FROM DUAL
+    UNION ALL
+    SELECT 'THURSDAY' FROM DUAL
+    UNION ALL
+    SELECT 'FRIDAY' FROM DUAL
+)
+
+SELECT 
+    w.Weekday,
+    COALESCE(COUNT(b.idBasket), 0) AS TotalOrders
+FROM 
+    Weekdays w
+LEFT JOIN 
+    bb_Basket b ON TRIM(DAY_ORD_SF(b.idBasket)) = w.Weekday
+GROUP BY 
+    w.Weekday
+ORDER BY 
+    CASE w.Weekday 
+        WHEN 'MONDAY' THEN 1
+        WHEN 'TUESDAY' THEN 2
+        WHEN 'WEDNESDAY' THEN 3
+        WHEN 'THURSDAY' THEN 4
+        WHEN 'FRIDAY' THEN 5
+    END;
+--*******************************************************************
+--q2
+
+DROP TABLE BB_SALES_SUM;
+CREATE TABLE BB_SALES_SUM (
+    idProduct number(2),
+    TotalSales number(10,2),
+    TotalQuantity number(5),
+    CONSTRAINT bb_salesum_idprod_fk FOREIGN KEY (idProduct) REFERENCES BB_Product(idProduct)
+);
+--trigger
+CREATE OR REPLACE TRIGGER BB_SALESUM_TRG
+AFTER UPDATE OF ORDERPLACED ON bb_Basket
+FOR EACH ROW
+WHEN (NEW.ORDERPLACED = 1)
+BEGIN
+  FOR i IN (SELECT idProduct, Price, Quantity 
+            FROM bb_basketItem 
+            WHERE idBasket = :NEW.idBasket) LOOP
+              
+      MERGE INTO BB_SALES_SUM s USING DUAL ON (s.idProduct = i.idProduct)
+      WHEN MATCHED THEN
+          UPDATE SET s.TotalSales = s.TotalSales + (i.Price * i.Quantity),
+                     s.TotalQuantity = s.TotalQuantity + i.Quantity
+      WHEN NOT MATCHED THEN
+          INSERT (idProduct, TotalSales, TotalQuantity)
+          VALUES (i.idProduct, i.Price * i.Quantity, i.Quantity);
+              
+  END LOOP;
+END;
+/
+--Before testing, reset the ORDERPLACED column to 0 for basket 3, as shown in the following code, and use this basket to test the trigger
+UPDATE bb_basket SET orderplaced = 0 WHERE idBasket = 3;
+--Test the trigger with the following UPDATE statement, and confirm that the trigger is working correctly:
+UPDATE bb_basket SET orderplaced = 1 WHERE idBasket = 3;
+
+SELECT * FROM BB_SALES_SUM;
+--Do a rollback and disable the trigger when you’re finished so that it doesn’t affect other assignments.
+ROLLBACK;
+ALTER TRIGGER BB_SALESUM_TRG DISABLE;
+
+--*******************************************************************
+//q3 
+//a. List name only, and sort by zip restaurants in 7 Avenue and having Irish cousin.
+
+db.restaurants.find(
+    {
+        "address.street": "7 Avenue",
+        "cuisine": "Irish"
+    },
+    {
+        "_id": 0,
+        "name": 1
+    }
+).sort({"address.zipcode": 1})
+
+//a. ans:
+[
+  { name: 'The Triple Crown' },
+  { name: 'Peter Mcmanus' },
+  { name: "Pj Carney'S" },
+  { name: "Rosie O'Grady Restaurant" },
+  { name: 'The Irish Pub' }
+]
+
+//b. List address for Caffe Grazie in Manhattan cuisine Italian with grade B and score between 15 and 20.
+
+db.restaurants.find(
+    {
+        "name": "Caffe Grazie",
+        "borough": "Manhattan",
+        "cuisine": "Italian",
+        "grades": {
+            $elemMatch: {
+                "grade": "B",
+                "score": { $gte: 15, $lte: 20 }
+            }
+        }
+    },
+    {
+        "_id": 0,
+        "address": 1
+    }
+)
+
+//b. ans
+[
+  {
+    address: {
+      building: '26',
+      coord: [ -73.960095, 40.779471 ],
+      street: 'East   84 Street',
+      zipcode: '10028'
+    }
+  }
+]

@@ -1,0 +1,328 @@
+Answer:-4-1)
+
+The following solution is a required SQL code for the given Problem:-
+
+VARIABLE g_basket NUMBER
+BEGIN
+:g_basket := 6;
+END;
+/
+DECLARE
+CURSOR cur_basket IS
+SELECT bi.idBasket, bi.quantity, p.stock
+FROM bb_basketitem bi INNER JOIN bb_product p
+USING (idProduct)
+WHERE bi.idBasket = :g_basket;
+TYPE type_basket IS RECORD (
+basket bb_basketitem.idBasket%TYPE,
+qty bb_basketitem.quantity%TYPE,
+stock bb_product.stock%TYPE);
+rec_basket type_basket;
+lv_flag_txt CHAR(1) := 'Y';
+BEGIN
+OPEN cur_basket;
+LOOP
+FETCH cur_basket INTO rec_basket;
+EXIT WHEN cur_basket%NOTFOUND;
+IF rec_basket.stock < rec_basket.qty THEN lv_flag_txt := 'N'; END IF;
+END LOOP;
+CLOSE cur_basket;
+IF lv_flag_txt = 'Y' THEN DBMS_OUTPUT.PUT_LINE('All items in stock!'); END IF;
+IF lv_flag_txt = 'N' THEN DBMS_OUTPUT.PUT_LINE('All items NOT in stock!'); END IF;
+END;
+
+/
+Explanation
+No explanation provided!
+
+Step: 2
+Answer:-4-3)
+
+The following solution is a required SQL code for the given Problem:-
+
+DECLARE CURSOR cur_shopper IS
+    SELECT a.idShop, a.promo,  b.totalAmount
+    FROM bb_shopper a, (SELECT b.idShop, SUM(bi.quantity*bi.price) totalAmount
+    FROM bb_basketitem bi, bb_basket b
+    WHERE bi.idBasket = b.idBasket
+    GROUP BY idShop) b
+    WHERE a.idShop = b.idShop
+
+    FOR UPDATE OF a.idShop NOWAIT;
+    lv_promo_txt CHAR(1);
+    BEGIN
+    
+        FOR rec_shopper IN cur_shopper LOOP
+        lv_promo_txt := 'X';
+        
+        IF rec_shopper.totalAmount > 100 THEN 
+        lv_promo_txt := 'A';
+    END IF;
+        IF rec_shopper.totalAmount BETWEEN 50 AND 99 THEN 
+        lv_promo_txt := 'B';
+        
+        END IF;   
+        IF lv_promo_txt <> 'X' THEN
+        
+    UPDATE bb_shopper
+        SET promo = lv_promo_txt
+        WHERE CURRENT OF cur_shopper;
+        END IF;
+        END LOOP;
+    COMMIT;
+END;
+-- > To display to total data
+
+SELECT s.idShop, s.promo,  SUM(bi.quantity*bi.price)
+FROM bb_shopper s, bb_basket b, bb_basketitem bi
+WHERE s.idShop = b.idShop
+AND b.idBasket = bi.idBasket
+GROUP BY s.idShop, s.promo;
+Explanation
+No explanation provided!
+
+Step: 3
+Answer:-4-5)
+
+The following solution is a required SQL code for the given Problem:-
+
+DECLARE
+rec_shopper bb_shopper%ROWTYPE;
+lv_shopper_num Number;
+lv_shopper_ex Exception;
+BEGIN
+
+lv_shopper_num Number :=12;
+SELECT count(*)
+INTO rec_shopper
+FROM bb_shopper
+WHERE idShopper = lv_shopper_num;
+
+if(count=0) then
+raise ex_invalid_id;
+
+EXCEPTION
+WHEN ex_invalid_id THEN
+dbms_output.put_line('Invalid Shopper ID');
+WHEN others THEN
+dbms_output.put_line('Other possible error!');
+END;
+Explanation
+No explanation provided!
+
+Step: 4
+Answer:-4-6)
+
+The following solution is a required SQL code for the given Problem:-
+
+SET serveroutput ON;
+DECLARE
+ex_basket EXCEPTION;
+pragma EXCEPTION_INIT(ex_basket, -02290);
+BEGIN
+EXECUTE IMMEDIATE 'ALTER TABLE bb_basketitem ADD CONSTRAINT bitems_qty_ck CHECK (quantity < 20);';
+INSERT INTO testab VALUES
+    (88
+   );
+EXCEPTION
+WHEN ex_basket THEN
+dbms_output.put_line('Check Quantity');
+END;
+Explanation
+No explanation provided!
+
+Final Answer
+The final SQL code:-
+
+Answer:-4.1)
+
+VARIABLE g_basket NUMBER
+
+BEGIN
+
+:g_basket := 6;
+
+END;
+
+/
+
+DECLARE
+
+CURSOR cur_basket IS
+
+SELECT bi.idBasket, bi.quantity, p.stock
+
+FROM bb_basketitem bi INNER JOIN bb_product p
+
+USING (idProduct)
+
+WHERE bi.idBasket = :g_basket;
+
+TYPE type_basket IS RECORD (
+
+basket bb_basketitem.idBasket%TYPE,
+
+qty bb_basketitem.quantity%TYPE,
+
+stock bb_product.stock%TYPE);
+
+rec_basket type_basket;
+
+lv_flag_txt CHAR(1) := 'Y';
+
+BEGIN
+
+OPEN cur_basket;
+
+LOOP
+
+FETCH cur_basket INTO rec_basket;
+
+EXIT WHEN cur_basket%NOTFOUND;
+
+IF rec_basket.stock < rec_basket.qty THEN lv_flag_txt := 'N'; END IF;
+
+END LOOP;
+
+CLOSE cur_basket;
+
+IF lv_flag_txt = 'Y' THEN DBMS_OUTPUT.PUT_LINE('All items in stock!'); END IF;
+
+IF lv_flag_txt = 'N' THEN DBMS_OUTPUT.PUT_LINE('All items NOT in stock!'); END IF;
+
+END;
+
+/
+
+Answer:-4.3)
+
+DECLARE CURSOR cur_shopper IS
+
+SELECT a.idShop, a.promo, b.totalAmount
+
+FROM bb_shopper a, (SELECT b.idShop, SUM(bi.quantity*bi.price) totalAmount
+
+FROM bb_basketitem bi, bb_basket b
+
+WHERE bi.idBasket = b.idBasket
+
+GROUP BY idShop) b
+
+WHERE a.idShop = b.idShop
+
+FOR UPDATE OF a.idShop NOWAIT;
+
+lv_promo_txt CHAR(1);
+
+BEGIN
+
+FOR rec_shopper IN cur_shopper LOOP
+
+lv_promo_txt := 'X';
+
+IF rec_shopper.totalAmount > 100 THEN
+
+lv_promo_txt := 'A';
+
+END IF;
+
+IF rec_shopper.totalAmount BETWEEN 50 AND 99 THEN
+
+lv_promo_txt := 'B';
+
+END IF;
+
+IF lv_promo_txt <> 'X' THEN
+
+UPDATE bb_shopper
+
+SET promo = lv_promo_txt
+
+WHERE CURRENT OF cur_shopper;
+
+END IF;
+
+END LOOP;
+
+COMMIT;
+
+END;
+
+-- > To display to total data
+
+SELECT s.idShop, s.promo, SUM(bi.quantity*bi.price)
+
+FROM bb_shopper s, bb_basket b, bb_basketitem bi
+
+WHERE s.idShop = b.idShop
+
+AND b.idBasket = bi.idBasket
+
+GROUP BY s.idShop, s.promo;
+
+Answer:-4.5)
+
+DECLARE
+
+rec_shopper bb_shopper%ROWTYPE;
+
+lv_shopper_num Number;
+
+lv_shopper_ex Exception;
+
+BEGIN
+
+lv_shopper_num Number :=12;
+
+SELECT count(*)
+
+INTO rec_shopper
+
+FROM bb_shopper
+
+WHERE idShopper = lv_shopper_num;
+
+if(count=0) then
+
+raise ex_invalid_id;
+
+EXCEPTION
+
+WHEN ex_invalid_id THEN
+
+dbms_output.put_line('Invalid Shopper ID');
+
+WHEN others THEN
+
+dbms_output.put_line('Other possible error!');
+
+END;
+
+Answer:-4.6)
+
+SET serveroutput ON;
+
+DECLARE
+
+ex_basket EXCEPTION;
+
+pragma EXCEPTION_INIT(ex_basket, -02290);
+
+BEGIN
+
+EXECUTE IMMEDIATE 'ALTER TABLE bb_basketitem ADD CONSTRAINT bitems_qty_ck CHECK (quantity < 20);';
+
+INSERT INTO testab VALUES
+
+(88
+
+);
+
+EXCEPTION
+
+WHEN ex_basket THEN
+
+dbms_output.put_line('Check Quantity');
+
+END;
+

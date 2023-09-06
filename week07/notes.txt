@@ -1,0 +1,23 @@
+PROCEDURES
+
+Create (or replace) procedure 
+
+{
+    p1 (MORE) DATATYPE
+    p2 (MORE) DATATYPE
+}
+AS
+BEGIN
+END
+
+
+
+-----------
+FUNCTIONS ( MORE IN/OUT)
+Create (or replace) function FUN1
+{
+    p1 (MORE) DATATYPE
+    p2 (MORE) DATATYPE
+}
+Return DATATYPE
+AS

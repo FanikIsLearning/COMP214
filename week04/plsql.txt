@@ -1,0 +1,27 @@
+pl/sql
+
+1. flowcharting
+2. speed (fast processing data)
+(jbdc to connect server) - huge data transfer solution (2 t- ier)
+3. separation - security (execute the program? execute the db?), triggers, executing code behind the since?
+
+
+
+pl/sql simplified stereotype code
+because we need a fast compiling
+pl/sql code is a Block
+
+the first block - 
+
+DECLARE
+- VAR;CORSORST ;TYPE
+
+- Except
+- SQL
+
+- 
+
+DECISION TREES - IF/ELSE
+LOOPS - FOR LOOP - EXIST STRATEGY
+
+ELSIF
